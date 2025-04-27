@@ -3,6 +3,7 @@
 import { auth, db } from '@/firebase/admin';
 import { FirebaseError } from 'firebase/app';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 const ONE_WEEK_IN_MILLISECONDS = 60 * 60 * 24 * 7 * 1000;
 
@@ -45,22 +46,6 @@ export async function signUp(params: SignUpParams) {
   }
 }
 
-export async function setSessionCookie(idToken: string) {
-  const cookieStore = await cookies();
-
-  const sessionCookie = await auth.createSessionCookie(idToken, {
-    expiresIn: ONE_WEEK_IN_MILLISECONDS,
-  });
-
-  cookieStore.set('session', sessionCookie, {
-    maxAge: ONE_WEEK_IN_MILLISECONDS,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    sameSite: 'lax',
-  });
-}
-
 export async function signIn(params: SignInParams) {
   const { email, idToken } = params;
 
@@ -82,6 +67,34 @@ export async function signIn(params: SignInParams) {
       message: 'Sign in failed.',
     };
   }
+}
+
+export async function signOut() {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('session');
+  auth
+    .verifySessionCookie(sessionCookie?.value ?? '')
+    .then((decodedClaims) => {
+      return auth.revokeRefreshTokens(decodedClaims.uid);
+    })
+    .catch(() => redirect('/sign-in'));
+  cookieStore.delete('session');
+}
+
+export async function setSessionCookie(idToken: string) {
+  const cookieStore = await cookies();
+
+  const sessionCookie = await auth.createSessionCookie(idToken, {
+    expiresIn: ONE_WEEK_IN_MILLISECONDS,
+  });
+
+  cookieStore.set('session', sessionCookie, {
+    maxAge: ONE_WEEK_IN_MILLISECONDS,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    sameSite: 'lax',
+  });
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -114,4 +127,37 @@ export async function getCurrentUser(): Promise<User | null> {
 export async function isAuthenticated() {
   const user = await getCurrentUser();
   return !!user;
+}
+
+export async function getInterviewByUserId(
+  userId: string
+): Promise<Interview[] | null> {
+  const interviews = await db
+    .collection('interviews')
+    .where('userId', '==', userId)
+    .orderBy('createdAt', 'desc')
+    .get();
+
+  return interviews.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Interview[];
+}
+
+export async function getLatestInterviews(
+  params: GetLatestInterviewsParams
+): Promise<Interview[] | null> {
+  const { userId, limit = 20 } = params;
+  const interviews = await db
+    .collection('interviews')
+    .orderBy('createdAt', 'desc')
+    .where('finalized', '==', true)
+    .where('userId', '!=', userId)
+    .limit(limit)
+    .get();
+
+  return interviews.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Interview[];
 }
