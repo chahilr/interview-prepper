@@ -17,7 +17,7 @@ export default function InterviewCard({
   const feedback = null as Feedback | null;
   const normalizedType = /mix/gi.test(type) ? 'Mixed' : type;
   const formattedDate = dayjs(
-    feedback?.createdAt || createdAt || Date.now()
+    feedback?.createdAt ?? createdAt ?? Date.now()
   ).format('MMM D, YYYY');
 
   return (
@@ -47,11 +47,11 @@ export default function InterviewCard({
             </div>
             <div className="flex flex-row gap-2 items-center">
               <Image src="/star.svg" alt="star" width={22} height={22} />
-              <p>{feedback?.totalScore || '---'}/100</p>
+              <p>{feedback?.totalScore ?? '---'}/100</p>
             </div>
           </div>
           <p className="line-clamp-2 mt-5">
-            {feedback?.finalAssessment ||
+            {feedback?.finalAssessment ??
               "You haven't taken the interview yet. Take it now to improve your skills."}
           </p>
         </div>

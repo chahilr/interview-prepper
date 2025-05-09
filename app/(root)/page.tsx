@@ -1,10 +1,10 @@
 import InterviewCard from '@/components/InterviewCard';
 import { Button } from '@/components/ui/button';
+import { getCurrentUser } from '@/lib/actions/auth.action';
 import {
-  getCurrentUser,
   getInterviewByUserId,
   getLatestInterviews,
-} from '@/lib/actions/auth.action';
+} from '@/lib/actions/general.action';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
@@ -48,7 +48,11 @@ export default async function Page() {
         <div className="interviews-section">
           {hasPastInterviews ? (
             userInterviews.map((interview) => (
-              <InterviewCard {...interview} key={interview.id} />
+              <InterviewCard
+                interviewId={interview.id}
+                {...interview}
+                key={interview.id}
+              />
             ))
           ) : (
             <p>You haven&apos;t taken any interviews yet</p>
